@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "nchbasis.lib: left H-bases in noncommutative G-algebras in Singular"
+version: "1.0"
+date-released: "2026-11-13"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/junaidalamkhan-stack/nchbasis"
+keywords:
+  - H-bases
+  - G-algebras
+  - Rees homogenization
+  - Weyl algebra
+  - Singular
+  - Plural
+authors:
+  - family-names: Khan
+    given-names: Muhammad Abdul Basit
+    affiliation: "Institute of Business Administration, Karachi"
+  - family-names: Khan
+    given-names: Junaid Alam
+    affiliation: "Institute of Business Administration, Karachi"
+preferred-citation:
+  type: article
+  title: "Computing left H-bases in noncommutative G-algebras by Rees homogenization"
+  authors:
+    - family-names: Khan
+      given-names: Muhammad Abdul Basit
+    - family-names: Khan
+      given-names: Junaid Alam

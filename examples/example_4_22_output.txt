@@ -1,0 +1,14 @@
+x*dy
+y*dx
+S[1]=y*dx^2*dy*gen(1)-x*dx*dy^2*gen(2)+2*dx^2*gen(1)-2*dy^2*gen(2)
+S[2]=x*y*dx*dy*gen(1)-x^2*dy^2*gen(2)+2*x*dx*gen(1)-y*dy*gen(1)-2*gen(1)
+S[3]=y^2*dx^2*gen(1)-x*y*dx*dy*gen(2)+x*dx*gen(2)-2*y*dy*gen(2)+2*gen(2)
+S[4]=x*y^2*dx*gen(1)-x^2*y*dy*gen(2)+x^2*gen(2)-y^2*gen(1)
+S[5]=x*y*dx^2*dy*gen(1)-x^2*dx*dy^2*gen(2)+2*x*dx^2*gen(1)-2*x*dy^2*gen(2)
+S[6]=x*y^2*dx^2*gen(1)-x^2*y*dx*dy*gen(2)+x^2*dx*gen(2)-2*x*y*dy*gen(2)+2*x*gen(2)
+[1]:
+   x*dy+dx
+[2]:
+   y*dx+dy
+[3]:
+   dx^3-dy^3

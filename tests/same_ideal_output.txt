@@ -1,0 +1,5 @@
+Example 4.20 (A_1): 2 -> 2 generators; H0 is the start of H: 1; same left ideal: 1
+Example 4.21 (U(sl_2)): 2 -> 4 generators; H0 is the start of H: 1; same left ideal: 1
+Example 4.21: basis of the paper generates the same left ideal: 1
+Example 4.21: f lies in the left ideal: 1
+Example 4.22 (A_2): 2 -> 3 generators; H0 is the start of H: 1; same left ideal: 1

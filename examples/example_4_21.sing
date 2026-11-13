@@ -1,0 +1,16 @@
+// Example 4.21 of the paper: Algorithm 2 in U(sl_2), omega = (1,-1,0),
+// H0 = {g1, g2} with g1 = e^2*f + f = (e^2+1)*f and g2 = e*f + f*h = (e+h+2)*f
+// (the generators in the table of Example 4.21).
+LIB "nchbasis.lib";
+LIB "ncalg.lib";
+option(noredefine);
+def U = makeUsl2();        // f*e = e*f - h, h*e = e*h + 2e, h*f = f*h - 2f
+setring U;
+intvec w = 1, -1, 0;
+list H0;
+H0[1] = (e^2 + 1)*f;
+H0[2] = (e + h + 2)*f;
+H0;
+list H = lhbasis(H0, w);
+H;
+quit;

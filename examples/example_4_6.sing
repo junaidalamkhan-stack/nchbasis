@@ -1,0 +1,18 @@
+// Example 4.6 of the paper: weights, auxiliary order, weighted degree and
+// left H-reduction in the second Weyl algebra A_2, omega = (1,1,-1,-1).
+LIB "nchbasis.lib";
+LIB "nctools.lib";
+ring r = 0, (x, y, dx, dy), dp;
+def A2 = Weyl();           // dx*x = x*dx + 1, dy*y = y*dy + 1
+setring A2;
+intvec w = 1, 1, -1, -1;
+poly p = x^2*dx + y*dy^2;
+list F;
+F[1] = x*dx - y;
+F[2] = dy^2;
+wminus(w);                 // magnitudes of the negative weights
+wplus(w);                  // positive part of the weight
+worder(p, w);              // auxiliary order v_omega(p)
+wdeg(p, w);                // weighted degree deg_omega(p)
+lhRed(p, F, w);            // left H-reduction of p modulo F
+quit;

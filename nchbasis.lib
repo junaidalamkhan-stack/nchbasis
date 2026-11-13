@@ -1,0 +1,396 @@
+///////////////////////////////////////////////////////////////////////////
+version="1.0";
+category="Noncommutative Algebra";
+info="
+LIBRARY: nchbasis.lib   Computing Left H-bases in G-algebras
+
+OVERVIEW:
+This library implements the computation of left H-bases in non-commutative 
+G-algebras. It provides routines for extracting initial forms with respect 
+to a weight vector, computing homogeneous syzygies of initial forms, and 
+calculating the complete left H-basis of a given ideal.
+
+AUTHORS:
+ Muhammad Abdul Basit Khan   <mabasit@iba.edu.pk>
+ Junaid Alam Khan            <jakhan@iba.edu.pk>
+
+EXAMPLES:
+See the commented section at the bottom of this file for ready-to-run 
+examples involving the second Weyl algebra A_2.
+";
+
+proc wminus(intvec w) {
+  int i; intvec n;
+  for (i = 1; i <= size(w); i++) {
+    if (w[i] < 0) { n[i] = -w[i]; } else { n[i] = 0; }
+  }
+  return(n);
+}
+
+proc wplus(intvec w) {
+  int i; intvec ws;
+  for (i = 1; i <= size(w); i++) {
+    if (w[i] > 0) { ws[i] = w[i]; } else { ws[i] = 0; }
+  }
+  return(ws);
+}
+
+proc worder(poly f, intvec w) {
+  if (f == 0) { return(-2147483647); }
+  intvec ws = wplus(w);
+  int max_d = -2147483647;
+  int d, i; intvec ex; poly temp = f;
+  while (temp != 0) {
+    ex = leadexp(temp); d = 0;
+    for (i = 1; i <= size(ws); i++) { d = d + ws[i] * ex[i]; }
+    if (d > max_d) { max_d = d; }
+    temp = temp - lead(temp);
+  }
+  return(max_d);
+}
+
+proc wdeg(poly f, intvec w) {
+  if (f == 0) { return(-2147483647); }
+  int max_d = -2147483647;
+  int d, i; intvec ex; poly temp = f;
+  while (temp != 0) {
+    ex = leadexp(temp); d = 0;
+    for (i = 1; i <= size(w); i++) { d = d + w[i] * ex[i]; }
+    if (d > max_d) { max_d = d; }
+    temp = temp - lead(temp);
+  }
+  return(max_d);
+}
+
+proc homwdeg(poly F, intvec w) {
+  if (F == 0) { return(-2147483647); }
+  intvec ws = wplus(w);
+  int max_d = -2147483647;
+  int d, i; intvec ex; poly temp = F;
+  while (temp != 0) {
+    ex = leadexp(temp); d = 0;
+    for (i = 1; i <= size(ws); i++) { d = d + ws[i] * ex[i]; }
+    if (size(ex) > size(ws)) { d = d + ex[size(ex)]; }
+    if (d > max_d) { max_d = d; }
+    temp = temp - lead(temp);
+  }
+  return(max_d);
+}
+
+proc lhRed(poly p, list F, intvec w) {
+  poly r = p;
+  poly remainder = 0;
+  int changed;
+  int i, j, divides;
+  intvec exp_r, exp_F;
+  poly multiplier;
+
+  while (r != 0) {
+    changed = 0;
+    
+    // Check if any element in F can divide the leading term of r
+    for (i = 1; i <= size(F); i++) {
+      if (F[i] != 0) {
+        exp_r = leadexp(r);
+        exp_F = leadexp(F[i]);
+        divides = 1;
+        
+        // Compare exponents to see if F[i] divides r
+        for (j = 1; j <= size(exp_r); j++) {
+          if (exp_r[j] < exp_F[j]) { 
+            divides = 0; 
+            break; 
+          }
+        }
+        
+        if (divides == 1) {
+          // Calculate the left multiplier and subtract
+          multiplier = lead(r) / lead(F[i]);
+          r = r - (multiplier * F[i]); 
+          changed = 1;
+          break; // Break the for-loop and restart the while-loop with new r
+        }
+      }
+    }
+    
+    // If no element in F could reduce the leading term, 
+    // move that term to the remainder and check the rest of the polynomial.
+    if (changed == 0) {
+      remainder = remainder + lead(r);
+      r = r - lead(r);
+    }
+  }
+  
+  return(remainder);
+}
+
+proc inform(poly f, intvec w) {
+  if (f == 0) { return(0); }
+  int d = wdeg(f, w);
+  poly in_f = 0;
+  poly temp = f;
+  intvec ex;
+  int term_d, i;
+  while(temp != 0) {
+      ex = leadexp(temp);
+      term_d = 0;
+      for (i = 1; i <= size(w); i++) { term_d = term_d + w[i]*ex[i]; }
+      if (term_d == d) { in_f = in_f + lead(temp); }
+      temp = temp - lead(temp);
+  }
+  return(in_f);
+}
+
+proc createRingB(def A) {
+  list rlA = ringlist(A);
+  int n = size(rlA[2]);
+  int n1 = n + 1;
+  
+  list rl_comm;
+  rl_comm[1] = rlA[1];
+  
+  list vars = rlA[2];
+  vars[n1] = "s"; 
+  rl_comm[2] = vars;
+  
+  intvec new_w;
+  int i, j;
+  for (i = 1; i <= n1; i++) {
+    new_w[i] = 1;
+  }
+  rl_comm[3] = list(list("dp", new_w), list("C", 0));
+  rl_comm[4] = rlA[4];
+  
+  int is_nc = 0;
+  matrix C_old;
+  matrix D_old;
+  if (size(rlA) >= 6) {
+      is_nc = 1;
+      C_old = rlA[5];
+      D_old = rlA[6];
+  }
+  
+  def R = ring(rl_comm);
+  
+  if (is_nc == 1) {
+      setring R; 
+      
+      matrix C_in_R = imap(A, C_old);
+      matrix D_in_R = imap(A, D_old);
+      
+      matrix C_new[n1][n1];
+      matrix D_new[n1][n1];
+      
+      for (i = 1; i <= n; i++) {
+        for (j = 1; j <= n; j++) {
+          C_new[i,j] = C_in_R[i,j];
+          D_new[i,j] = D_in_R[i,j];
+        }
+        C_new[i, n1] = 1;
+        C_new[n1, i] = 1;
+      }
+      C_new[n1, n1] = 1; 
+      
+      def B = nc_algebra(C_new, D_new);
+      return(B);
+  } else {
+      return(R);
+  }
+}
+
+proc doHomog(poly f, intvec w) {
+   if (f == 0) { return(0); }
+   def B_curr = basering; 
+   int n = size(w);
+   poly s_var = var(n+1);
+   
+   int max_d = -2147483647;
+   poly temp = f;
+   intvec ex; int d, i;
+   while(temp != 0) {
+       ex = leadexp(temp); d = 0;
+       for(i=1; i<=n; i++) { d = d + w[i]*ex[i]; }
+       if (d > max_d) { max_d = d; }
+       temp = temp - lead(temp);
+   }
+   
+   poly fh = 0;
+   temp = f;
+   while(temp != 0) {
+       ex = leadexp(temp); d = 0;
+       for(i=1; i<=n; i++) { d = d + w[i]*ex[i]; }
+       fh = fh + lead(temp) * (s_var^(max_d - d));
+       temp = temp - lead(temp);
+   }
+   return(fh);
+}
+
+proc checkMembership(poly r, list H, intvec w, def B_ring) {
+  def A = basering;
+  
+  ideal H_ideal;
+  int i;
+  for (i = 1; i <= size(H); i++) {
+    H_ideal[i] = H[i];
+  }
+  
+  setring B_ring;
+  poly rB = imap(A, r);
+  ideal J_raw = imap(A, H_ideal); 
+  
+  ideal J;
+  for (i = 1; i <= ncols(J_raw); i++) {
+    J[i] = doHomog(J_raw[i], w);
+  }
+  
+  ideal stdJ = std(J); 
+  poly rB_h = doHomog(rB, w);
+  poly rem = NF(rB_h, stdJ);
+  
+  int res = (rem == 0);
+  setring A;
+  return(res);
+}
+
+// ==========================================================
+// NEW PROCEDURE: Extracts homogeneous syzygies of initial forms
+// ==========================================================
+proc informSyzygies(list H, intvec w) {
+  int i;
+  ideal in_H;
+  
+  for(i = 1; i <= size(H); i++) { 
+      in_H[i] = inform(H[i], w); 
+  }
+  
+  module S = syz(in_H);
+  return(S);
+}
+
+proc lhbasis(list H0, intvec w) {
+  def A = basering;
+  def B = createRingB(A);
+  setring A;
+  list H = H0;
+  int changed = 1;
+  int i, k, is_mem;
+  poly p_sigma, r;
+  
+  while(changed) {
+      changed = 0;
+      
+      // Call the standalone syzygy procedure
+      module S = informSyzygies(H, w);
+      int num_syz = ncols(S);
+      
+      for(k = 1; k <= num_syz; k++) {
+          p_sigma = 0;
+          for(i = 1; i <= size(H); i++) {
+              p_sigma = p_sigma + S[i, k] * H[i];
+          }
+          
+          r = lhRed(p_sigma, H, w);
+          if (r != 0) {
+              is_mem = checkMembership(r, H, w, B);
+              if (is_mem == 0) {
+                  H[size(H)+1] = r;
+                  changed = 1;
+                  break; 
+              }
+          }
+      }
+  }
+  return(H);
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+// ===================================================================== //
+//                        USAGE EXAMPLES                                 //
+// ===================================================================== //
+/*
+To run these examples, make sure this file (`nchbasis.lib`) is 
+saved in your working directory.
+
+// ---------------------------------------------------------------------
+// EXAMPLE 1: COMPUTING INITIAL FORMS (inform)
+// ---------------------------------------------------------------------
+option(noredefine);
+LIB "nchbasis.lib"; 
+LIB "nctools.lib";
+
+// 1. SET UP THE G-ALGEBRA (SECOND WEYL ALGEBRA A_2)
+ring R = 0, (x, y, dx, dy), dp;
+def A2 = Weyl(); // dx*x = x*dx + 1, dy*y = y*dy + 1
+setring A2;
+
+// 2. DEFINE WEIGHT VECTOR AND GENERATORS
+intvec w = 1, 1, -1, -1; 
+list H0;
+H0[1] = x*dy + dx; 
+H0[2] = y*dx + dy;
+
+// 3. EXTRACT INITIAL FORMS
+print("Initial form of H0[1]:");
+inform(H0[1], w);
+// -> x*dy
+inform(H0[2], w);
+// -> y*dx
+
+
+
+// ---------------------------------------------------------------------
+// EXAMPLE 2: COMPUTING HOMOGENEOUS SYZYGIES (informSyzygies)
+// ---------------------------------------------------------------------
+option(noredefine);
+LIB "nchbasis.lib"; 
+LIB "nctools.lib";
+
+// 1. SET UP THE G-ALGEBRA A_2
+ring R = 0, (x, y, dx, dy), dp;
+def A2 = Weyl(); 
+setring A2;
+
+// 2. DEFINE WEIGHT VECTOR AND GENERATORS
+intvec w = 1, 1, -1, -1; 
+list H0;
+H0[1] = x*dy + dx; 
+H0[2] = y*dx + dy;
+
+// 3. COMPUTE THE SYZYGY MODULE OF THE INITIAL FORMS
+module S = informSyzygies(H0, w);
+print(S);
+// -> S[1]=y*dx^2*dy*gen(1)-x*dx*dy^2*gen(2)+2*dx^2*gen(1)-2*dy^2*gen(2)
+// -> S[2]=x*y*dx*dy*gen(1)-x^2*dy^2*gen(2)+2*x*dx*gen(1)-y*dy*gen(1)-2*gen(1)
+// -> S[3]=y^2*dx^2*gen(1)-x*y*dx*dy*gen(2)+x*dx*gen(2)-2*y*dy*gen(2)+2*gen(2)
+// -> S[4]=x*y^2*dx*gen(1)-x^2*y*dy*gen(2)+x^2*gen(2)-y^2*gen(1)
+// -> S[5]=x*y*dx^2*dy*gen(1)-x^2*dx*dy^2*gen(2)+2*x*dx^2*gen(1)-2*x*dy^2*gen(2)
+// -> S[6]=x*y^2*dx^2*gen(1)-x^2*y*dx*dy*gen(2)+x^2*dx*gen(2)-2*x*y*dy*gen(2)+2*x*gen(2)
+
+
+
+// ---------------------------------------------------------------------
+// EXAMPLE 3: COMPUTING THE COMPLETE LEFT H-BASIS (lhbasis)
+// ---------------------------------------------------------------------
+option(noredefine);
+LIB "nchbasis.lib"; 
+LIB "nctools.lib";
+
+// 1. SET UP THE G-ALGEBRA A_2
+ring R = 0, (x, y, dx, dy), dp;
+def A2 = Weyl(); 
+setring A2;
+
+// 2. DEFINE WEIGHT VECTOR AND GENERATORS
+intvec w = 1, 1, -1, -1; 
+list H0;
+H0[1] = x*dy + dx; 
+H0[2] = y*dx + dy;
+
+// 3. EXECUTE LEFT H-BASIS ALGORITHM
+list H = lhbasis(H0, w);
+print(H);
+// -> [1]=x*dy+dx 
+// -> [2]=y*dx+dy
+// -> [3]=dx^3-dy^3
+*/
